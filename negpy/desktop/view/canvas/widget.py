@@ -21,6 +21,8 @@ class ImageCanvas(QWidget):
     clicked = pyqtSignal(float, float)
     crop_completed = pyqtSignal(float, float, float, float)
     zoom_changed = pyqtSignal(float)
+    cursor_position_changed = pyqtSignal(float, float)
+    cursor_left_canvas = pyqtSignal()
 
     def __init__(self, state: AppState, parent=None):
         super().__init__(parent)
@@ -38,6 +40,8 @@ class ImageCanvas(QWidget):
         self.pan_offset = QPointF(0, 0)
         self._last_mouse_pos = QPointF(0, 0)
         self._is_panning = False
+        self._bg_color = QColor("#050505")
+        self._last_buffer: Any = None
 
         self.root_layout = QStackedLayout(self)
         self.root_layout.setStackingMode(QStackedLayout.StackingMode.StackAll)
@@ -59,6 +63,8 @@ class ImageCanvas(QWidget):
 
         self.overlay.clicked.connect(self.clicked.emit)
         self.overlay.crop_completed.connect(self.crop_completed.emit)
+        self.overlay.cursor_moved.connect(self.cursor_position_changed.emit)
+        self.overlay.cursor_left.connect(self.cursor_left_canvas.emit)
 
     def set_tool_mode(self, mode: ToolMode) -> None:
         self.overlay.set_tool_mode(mode)
@@ -70,18 +76,51 @@ class ImageCanvas(QWidget):
             self.pan_offset = QPointF(0, 0)
         self._sync_transform()
 
+    def set_background_color(self, r: float, g: float, b: float) -> None:
+        """Update canvas background color (0–1 linear values)."""
+        hex_color = "#{:02x}{:02x}{:02x}".format(int(r * 255), int(g * 255), int(b * 255))
+        self._bg_color = QColor(hex_color)
+        self.gpu_widget.set_background_color(r, g, b)
+        self.update()
+
     def paintEvent(self, event) -> None:
         """Draw background only if GPU is not active to prevent covering it."""
         if not self.gpu_widget.isVisible():
             painter = QPainter(self)
-            painter.fillRect(event.rect(), QColor("#050505"))
+            painter.fillRect(event.rect(), self._bg_color)
 
     def clear(self) -> None:
         """Total viewport reset."""
         self.zoom_level = 1.0
         self.pan_offset = QPointF(0, 0)
+        self._last_buffer = None
         self.gpu_widget.clear()
         self.overlay.update_buffer(None, "sRGB", None)
+
+    def get_pixel_rgb(self, nx: float, ny: float) -> Optional[Tuple[float, float, float]]:
+        """Returns the displayed sRGB triplet in 0..1 at normalized image coords, or None."""
+        import numpy as np
+
+        buf = self._last_buffer
+        if buf is None:
+            return None
+        if isinstance(buf, GPUTexture):
+            w, h = buf.width, buf.height
+            x = int(max(0, min(w - 1, nx * w)))
+            y = int(max(0, min(h - 1, ny * h)))
+            try:
+                arr = buf.readback_region(x, y, 1, 1)
+            except Exception:
+                return None
+            return (float(arr[0, 0, 0]), float(arr[0, 0, 1]), float(arr[0, 0, 2]))
+        if isinstance(buf, np.ndarray):
+            h, w = buf.shape[:2]
+            x = int(max(0, min(w - 1, nx * w)))
+            y = int(max(0, min(h - 1, ny * h)))
+            px = buf[y, x]
+            scale = 1.0 / 255.0 if buf.dtype == np.uint8 else 1.0
+            return (float(px[0]) * scale, float(px[1]) * scale, float(px[2]) * scale)
+        return None
 
     def wheelEvent(self, event) -> None:
         """Handles zooming centered on the mouse cursor."""
@@ -141,6 +180,7 @@ class ImageCanvas(QWidget):
         """
         Switches between CPU and GPU rendering paths.
         """
+        self._last_buffer = buffer
         if self.state.gpu_enabled and isinstance(buffer, GPUTexture):
             self.gpu_widget.show()
             self.gpu_widget.update_texture(buffer)

@@ -1,5 +1,24 @@
 # Change Log
 
+## 0.14.0
+
+- Added **Split Toning**: independent shadow and highlight color tinting with hue (0–360°) and strength controls. Works on both color and B&W scans. Applied in Lab space — luminance is preserved exactly.
+- Improved normalization: simplified per-channel floor analysis for more consistent results across different film stocks.
+- Increased CMY white balance range for stronger correction capability.
+- Toning: Selenium & Sepia sliders now hidden in color mode; Paper Profile section moved below toning controls with a clear label.
+- Exposure: Global / Shadows / Highlights region selector replaced with three toggle buttons; CMY label colors shift subtly per region for visual context.
+- Collapsible sidebar sections now show a red dot indicator when they contain non-default values.
+- **Per-section reset buttons**: each collapsible sidebar section header now has a reset button to restore that section's defaults without touching other settings.
+- Lab: color-only sliders (Separation, Saturation, Vibrance, Denoise) now hidden in B&W mode instead of greyed out.
+- Added info tooltips to sliders
+- - **Canvas background color**: three swatch buttons in the toolbar (Black / Dark Grey / Mid Grey) to set the viewport background.
+- **Keyboard shortcut overlay**: press `?` to open a modal reference of all shortcuts.
+- GPU acceleration failure now shown as a status message instead of silently falling back to CPU.
+- Stability: fixed GPU staging buffer leak on device loss/OOM; fixed dangling thread on app quit; thumbnail failures now surface as status bar errors.
+- **Persistent UI preferences**: HQ preview toggle, canvas background color, auto dust removal default, and ICC profile settings (path, direction, apply-to-export) now survive app restarts.
+- **Slider improvements**: sliders now show a tick mark at the default position; numeric units (px, °) displayed on relevant sliders; drag the slider label horizontally to scrub its value (hold Shift for fine control, Ctrl for coarse).
+- **Cursor pixel readout**: hovering over the canvas shows the pixel's RGB and Lab values in the status bar.
+
 ## 0.13.2
 
 - Fix regression: Changing camera wb, crop ratio, crop offset, manual crop, or resetting crop now forces normalization bounds re-analysis.
