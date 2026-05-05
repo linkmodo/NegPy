@@ -53,7 +53,7 @@ class GeometryProcessor:
                 scale_factor=context.scale_factor,
             )
             context.active_roi = roi
-        else:
+        elif self.config.auto_crop_enabled:
             roi = get_autocrop_coords(
                 img,
                 offset_px=self.config.autocrop_offset,
@@ -61,6 +61,8 @@ class GeometryProcessor:
                 target_ratio_str=self.config.autocrop_ratio,
             )
             context.active_roi = roi
+        else:
+            context.active_roi = None
 
         context.metrics["active_roi"] = context.active_roi
         return img

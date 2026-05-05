@@ -1,5 +1,5 @@
 import numpy as np
-from negpy.features.geometry.logic import get_manual_crop_coords
+from negpy.features.geometry.logic import get_autocrop_coords, get_manual_crop_coords
 from negpy.features.geometry.processor import GeometryProcessor
 from negpy.features.geometry.models import GeometryConfig
 from negpy.domain.interfaces import PipelineContext
@@ -47,16 +47,55 @@ def test_geometry_processor_manual_offset():
 
 def test_geometry_processor_no_manual_rect_no_offset():
     img = np.zeros((100, 200, 3), dtype=np.float32)
-    # No manual crop rect -> should fall back to auto-crop
+    # No manual crop and auto-crop disabled -> should keep the full image.
     config = GeometryConfig(autocrop_offset=0)
     processor = GeometryProcessor(config)
     context = PipelineContext(scale_factor=1.0, original_size=(100, 200))
 
     processor.process(img, context)
 
-    # Auto-crop on pure black image might return a non-empty crop
+    assert context.active_roi is None
+
+
+def test_geometry_processor_auto_crop_requires_explicit_enable():
+    img = np.ones((240, 360, 3), dtype=np.float32)
+    img[50:190, 90:270] = 0.05
+
+    config = GeometryConfig(auto_crop_enabled=True, autocrop_offset=0, autocrop_ratio="Free")
+    processor = GeometryProcessor(config)
+    context = PipelineContext(scale_factor=1.0, original_size=(240, 360))
+
+    processor.process(img, context)
+
     assert context.active_roi is not None
-    assert context.active_roi[1] > context.active_roi[0]
+    y1, y2, x1, x2 = context.active_roi
+    assert y2 > y1
+    assert x2 > x1
+
+
+def test_get_autocrop_coords_detects_dark_frame_on_light_bed():
+    img = np.ones((240, 360, 3), dtype=np.float32)
+    img[50:190, 90:270] = 0.05
+
+    roi = get_autocrop_coords(img, offset_px=0, scale_factor=1.0, target_ratio_str="Free")
+
+    y1, y2, x1, x2 = roi
+    assert 35 <= y1 <= 70
+    assert 170 <= y2 <= 205
+    assert 75 <= x1 <= 110
+    assert 250 <= x2 <= 285
+
+
+def test_get_autocrop_coords_fallback_preserves_valid_roi_for_flat_image():
+    img = np.ones((120, 200, 3), dtype=np.float32) * 0.5
+
+    roi = get_autocrop_coords(img, offset_px=0, scale_factor=1.0, target_ratio_str="Free")
+
+    y1, y2, x1, x2 = roi
+    assert 0 <= y1 < y2 <= 120
+    assert 0 <= x1 < x2 <= 200
+    assert y2 - y1 > 0
+    assert x2 - x1 > 0
 
 
 def test_crop_consistency_across_resolutions():
@@ -64,7 +103,7 @@ def test_crop_consistency_across_resolutions():
     full_h, full_w = 3000, 4500
     prev_h, prev_w = 1000, 1500
 
-    config = GeometryConfig(autocrop_offset=10)
+    config = GeometryConfig(auto_crop_enabled=True, autocrop_offset=10)
     processor = GeometryProcessor(config)
 
     ctx_full = PipelineContext(

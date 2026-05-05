@@ -9,15 +9,12 @@ class TestDarkroomEngine(unittest.TestCase):
         """End-to-end pipeline smoke test."""
         engine = DarkroomEngine()
         img = np.random.rand(100, 100, 3).astype(np.float32)
-        # Use default config (which does auto-crop by default)
+        # Default config should preserve the full image until auto-crop is explicitly enabled.
         settings = WorkspaceConfig()
 
         res = engine.process(img, settings, source_hash="dummy")
 
-        # Default autocrop will shrink the 100x100 random noise slightly
-        # because random noise doesn't look like film borders
-        self.assertTrue(res.shape[0] <= 100)
-        self.assertTrue(res.shape[1] <= 100)
+        self.assertEqual(res.shape[:2], (100, 100))
         self.assertLessEqual(np.max(res), 1.0)
         self.assertGreaterEqual(np.min(res), 0.0)
 
@@ -25,8 +22,8 @@ class TestDarkroomEngine(unittest.TestCase):
         """Engine respects geometry settings."""
         engine = DarkroomEngine()
         img = np.random.rand(200, 200, 3).astype(np.float32)
-        # Use offset to shrink image
-        settings = WorkspaceConfig.from_flat_dict({"autocrop_offset": 10})
+        # Use explicit auto-crop plus offset to shrink image.
+        settings = WorkspaceConfig.from_flat_dict({"auto_crop_enabled": True, "autocrop_offset": 10})
 
         res = engine.process(img, settings, source_hash="dummy")
 

@@ -308,6 +308,7 @@ class ControlsPanel(QWidget):
                 geo.fine_rotation != _geo.fine_rotation,
                 geo.flip_horizontal != _geo.flip_horizontal,
                 geo.flip_vertical != _geo.flip_vertical,
+                geo.auto_crop_enabled != _geo.auto_crop_enabled,
                 geo.manual_crop_rect is not None,
                 geo.autocrop_ratio != _geo.autocrop_ratio,
                 geo.autocrop_offset != _geo.autocrop_offset,

@@ -114,9 +114,16 @@ class CanvasOverlay(QWidget):
     def paintEvent(self, event) -> None:
         painter = QPainter(self)
 
+        parent_bg = getattr(self.parent(), "_bg_color", QColor("#050505"))
+        if not getattr(self.parent(), "gpu_widget", None) or not self.parent().gpu_widget.isVisible():
+            painter.fillRect(event.rect(), parent_bg)
+
         if sys.platform in ("darwin", "win32"):
             painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source)
-            painter.fillRect(event.rect(), Qt.GlobalColor.transparent)
+            if getattr(self.parent(), "gpu_widget", None) and self.parent().gpu_widget.isVisible():
+                painter.fillRect(event.rect(), Qt.GlobalColor.transparent)
+            else:
+                painter.fillRect(event.rect(), parent_bg)
             painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver)
 
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)

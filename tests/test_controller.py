@@ -1,11 +1,12 @@
 import sys
 import unittest
 from unittest.mock import MagicMock, patch
+from dataclasses import replace
 
 from PyQt6.QtWidgets import QApplication
 
 from negpy.desktop.controller import AppController
-from negpy.desktop.session import DesktopSessionManager, AppState
+from negpy.desktop.session import DesktopSessionManager, AppState, ToolMode
 from negpy.services.rendering.preview_manager import PreviewManager
 
 if not QApplication.instance():
@@ -95,6 +96,46 @@ class TestAppController(unittest.TestCase):
         self.assertEqual(self.controller.state.original_res, dims)
         self.assertEqual(self.controller.state.current_file_path, "dummy.dng")
         mock_slot.assert_called_once_with()
+        self.controller.request_render.assert_called_once_with()
+
+    def test_apply_auto_crop_enables_auto_crop_and_clears_manual_rect(self):
+        geometry = replace(self.controller.state.config.geometry, manual_crop_rect=(0.1, 0.1, 0.9, 0.9), auto_crop_enabled=False)
+        self.controller.state.config = replace(self.controller.state.config, geometry=geometry)
+        self.controller.request_render = MagicMock()
+
+        self.controller.apply_auto_crop()
+
+        saved_config = self.mock_session_manager.update_config.call_args.args[0]
+        self.assertTrue(saved_config.geometry.auto_crop_enabled)
+        self.assertIsNone(saved_config.geometry.manual_crop_rect)
+        self.assertEqual(saved_config.geometry.autocrop_ratio, "Free")
+        self.controller.request_render.assert_called_once_with()
+
+    def test_reset_crop_disables_auto_crop_and_clears_manual_rect(self):
+        geometry = replace(self.controller.state.config.geometry, manual_crop_rect=(0.1, 0.1, 0.9, 0.9), auto_crop_enabled=True)
+        self.controller.state.config = replace(self.controller.state.config, geometry=geometry)
+        self.controller.request_render = MagicMock()
+
+        self.controller.reset_crop()
+
+        saved_config = self.mock_session_manager.update_config.call_args.args[0]
+        self.assertFalse(saved_config.geometry.auto_crop_enabled)
+        self.assertIsNone(saved_config.geometry.manual_crop_rect)
+        self.controller.request_render.assert_called_once_with()
+
+    def test_manual_crop_completion_disables_auto_crop(self):
+        geometry = replace(self.controller.state.config.geometry, auto_crop_enabled=True)
+        self.controller.state.config = replace(self.controller.state.config, geometry=geometry)
+        self.controller.state.active_tool = ToolMode.CROP_MANUAL
+        self.controller.state.last_metrics = {"uv_grid": (0.0, 1.0, 0.0, 1.0)}
+        self.controller.request_render = MagicMock()
+
+        with patch("negpy.desktop.controller.CoordinateMapping.map_click_to_raw", side_effect=[(0.2, 0.3), (0.8, 0.9)]):
+            self.controller.handle_crop_completed(0.2, 0.3, 0.8, 0.9)
+
+        saved_config = self.mock_session_manager.update_config.call_args.args[0]
+        self.assertFalse(saved_config.geometry.auto_crop_enabled)
+        self.assertEqual(saved_config.geometry.manual_crop_rect, (0.2, 0.3, 0.8, 0.9))
         self.controller.request_render.assert_called_once_with()
 
 

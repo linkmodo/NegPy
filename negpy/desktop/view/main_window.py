@@ -202,6 +202,15 @@ class MainWindow(QMainWindow):
             header.gpu_badge.setText("CPU")
             header.gpu_badge.setStyleSheet(f"color: {THEME.text_secondary}; font-size: {THEME.font_size_xs}px; font-weight: bold;")
 
+    def _display_buffer_for_canvas(self, buffer):
+        if isinstance(buffer, GPUTexture):
+            buffer = buffer.readback()
+
+        if isinstance(buffer, np.ndarray) and buffer.ndim == 3 and buffer.shape[2] == 4:
+            return buffer[:, :, :3]
+
+        return buffer
+
     def _on_image_updated(self) -> None:
         """Refreshes canvas when a new render pass completes."""
         self.empty_state.setVisible(False)

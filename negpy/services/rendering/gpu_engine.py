@@ -275,7 +275,7 @@ class GPUEngine:
                     offset_px=settings.geometry.autocrop_offset,
                     scale_factor=scale_factor,
                 )
-            else:
+            elif settings.geometry.auto_crop_enabled:
                 det_s = APP_CONFIG.preview_render_size / max(h, w)
                 tmp = cv2.resize(img, (int(w * det_s), int(h * det_s)))
                 if settings.geometry.rotation != 0:
@@ -298,6 +298,8 @@ class GPUEngine:
                     int(roi_tmp[2] * sx),
                     int(roi_tmp[3] * sx),
                 )
+            else:
+                roi = (0, h_rot, 0, w_rot)
             y1, y2, x1, x2 = roi
             crop_w, crop_h = max(1, x2 - x1), max(1, y2 - y1)
 

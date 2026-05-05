@@ -49,6 +49,7 @@ class AppController(QObject):
     loading_started = pyqtSignal()
     export_progress = pyqtSignal(int, int, str)
     export_finished = pyqtSignal(float)
+    preview_loaded = pyqtSignal()
     render_requested = pyqtSignal(RenderTask)
     preview_load_requested = pyqtSignal(PreviewLoadTask)
     normalization_requested = pyqtSignal(NormalizationTask)
@@ -331,6 +332,7 @@ class AppController(QObject):
                 max(rx1, rx2),
                 max(ry1, ry2),
             ),
+            auto_crop_enabled=False,
         )
         new_proc = replace(self.state.config.process, local_floors=(0.0, 0.0, 0.0), local_ceils=(0.0, 0.0, 0.0))
         self.session.update_config(replace(self.state.config, geometry=new_geo, process=new_proc))
@@ -343,7 +345,23 @@ class AppController(QObject):
         self.session.update_config(
             replace(
                 self.state.config,
-                geometry=replace(self.state.config.geometry, manual_crop_rect=None),
+                geometry=replace(self.state.config.geometry, manual_crop_rect=None, auto_crop_enabled=False),
+                process=new_proc,
+            )
+        )
+        self.request_render()
+
+    def apply_auto_crop(self) -> None:
+        new_proc = replace(self.state.config.process, local_floors=(0.0, 0.0, 0.0), local_ceils=(0.0, 0.0, 0.0))
+        self.session.update_config(
+            replace(
+                self.state.config,
+                geometry=replace(
+                    self.state.config.geometry,
+                    manual_crop_rect=None,
+                    auto_crop_enabled=True,
+                    autocrop_ratio="Free",
+                ),
                 process=new_proc,
             )
         )
