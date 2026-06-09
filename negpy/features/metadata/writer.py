@@ -167,16 +167,67 @@ def embed_metadata(
         merged["1st"].pop(piexif.ImageIFD.Orientation, None)
 
     try:
-        exif_bytes = piexif.dump(_sanitize_exif(merged))
         output = io.BytesIO()
         if image_bytes[:2] == b"\xff\xd8":
+            # JPEG APP1 (EXIF) must fit in a single 64 KB segment.
+            exif_bytes = _dump_exif_within_app1_limit(merged)
             piexif.insert(exif_bytes, image_bytes, output)
         else:
+            # TIFF has no 64 KB EXIF cap (tifffile writes a separate IFD).
+            exif_bytes = piexif.dump(_sanitize_exif(merged))
             _rewrite_tiff_with_metadata(image_bytes, exif_bytes, output)
         return output.getvalue()
     except Exception:
         _log.warning("metadata embed failed", exc_info=True)
         return image_bytes
+
+
+# JPEG APP1 segment is 2 bytes for the length field (incl. itself) → 65535 max,
+# leaving 65533 for the EXIF payload that piexif.insert prefixes with \xff\xe1+len.
+_APP1_EXIF_LIMIT = 65533
+
+
+def _dump_exif_within_app1_limit(merged: dict) -> bytes:
+    """
+    Serialize EXIF for a JPEG, progressively dropping the largest optional blocks until it
+    fits the 64 KB APP1 segment. Source RAWs often carry an embedded thumbnail and/or a
+    multi-KB MakerNote that overflow it; the small user/override fields are always kept.
+    """
+    candidate = _sanitize_exif(merged)
+
+    def _try_dump() -> Optional[bytes]:
+        # Treat both an oversized result and a dump failure (e.g. a malformed source
+        # thumbnail) as "needs more trimming".
+        try:
+            b = piexif.dump(candidate)
+        except Exception:
+            return None
+        return b if len(b) <= _APP1_EXIF_LIMIT else None
+
+    exif_bytes = _try_dump()
+    if exif_bytes is not None:
+        return exif_bytes
+
+    # 1) Drop the embedded thumbnail (largest blob, and it'd be the un-edited source anyway).
+    candidate.pop("thumbnail", None)
+    candidate["1st"] = {}
+    exif_bytes = _try_dump()
+    if exif_bytes is not None:
+        return exif_bytes
+
+    # 2) Drop MakerNote (can be tens of KB on some bodies).
+    if isinstance(candidate.get("Exif"), dict):
+        candidate["Exif"].pop(piexif.ExifIFD.MakerNote, None)
+    exif_bytes = _try_dump()
+    if exif_bytes is not None:
+        return exif_bytes
+
+    # 3) Last resort: drop UserComment + Interop too.
+    _log.warning("EXIF still oversized after trimming thumbnail+MakerNote")
+    if isinstance(candidate.get("Exif"), dict):
+        candidate["Exif"].pop(piexif.ExifIFD.UserComment, None)
+    candidate["Interop"] = {}
+    return piexif.dump(candidate)
 
 
 # TIFF type codes we know how to map onto tifffile extratags.
