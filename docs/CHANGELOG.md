@@ -1,5 +1,11 @@
 # Change Log
 
+## 0.24.0
+
+- Added **Before/After**: toggle button (and `\` shortcut) to flash the un-graded auto conversion of the current frame, so you can see what your edits changed at a glance.
+- Background pre-loading now respects each file's own Linear RAW setting, so neighbouring photos stay instant even when their settings differ.
+- **Faster preview loading**: opening and navigating between photos is now near-instant. Previews use a quick decode for display (full quality is still used on export), recently-viewed images are kept in memory, and an embedded thumbnail shows immediately while the full preview loads. Next/previous files are pre-loaded in the background so flipping through a roll feels instant. @reederphill (#230)
+
 ## 0.23.2
 
 - Fix: a manually cropped photo no longer fails to load with "asdict() should be called on dataclass instances" after switching to another photo and returning. The crop rectangle was reloaded as a list instead of a tuple, making the config unhashable and crashing the render cache. (#228)

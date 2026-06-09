@@ -113,6 +113,11 @@ class ActionToolbar(QWidget):
         self.btn_hq.setCheckable(True)
         self.btn_hq.setToolTip("Toggle High Quality Preview")
 
+        self.btn_compare = QToolButton()
+        self.btn_compare.setCheckable(True)
+        self.btn_compare.setIcon(qta.icon("fa5s.adjust", color=icon_color))
+        self.btn_compare.setToolTip("Before / After — show the auto baseline  \\")
+
         # 4. Canvas background swatches
         self.canvas_color_btns: list[QToolButton] = []
         self.canvas_color_group = QButtonGroup(self)
@@ -202,6 +207,7 @@ class ActionToolbar(QWidget):
             self.btn_flip_v,
             self.btn_save,
             self.btn_hq,
+            self.btn_compare,
             self.btn_overflow,
         ]
         for btn in standard_buttons:
@@ -232,6 +238,7 @@ class ActionToolbar(QWidget):
         row_layout.addWidget(self._sep3)
         row_layout.addWidget(self.btn_save)
         row_layout.addWidget(self.btn_export)
+        row_layout.addWidget(self.btn_compare)
         row_layout.addWidget(self.btn_overflow)
 
         # Overflow groups for responsive resizeEvent
@@ -257,6 +264,8 @@ class ActionToolbar(QWidget):
 
         self.zoom_slider.valueChanged.connect(lambda v: self.controller.zoom_requested.emit(float(v / 100.0)))
         self.btn_hq.clicked.connect(self.controller.toggle_hq_preview)
+        self.btn_compare.clicked.connect(self.controller.toggle_compare)
+        self.controller.compare_changed.connect(self.btn_compare.setChecked)
         self.controller.zoom_changed.connect(self._on_zoom_changed)
 
         self.session.state_changed.connect(self._update_ui_state)
