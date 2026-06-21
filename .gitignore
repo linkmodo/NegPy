@@ -31,14 +31,11 @@ VERSION
 # metrics artifacts
 metrics.json
 # llm stuff
-TODO.md
-CLAUDE.md
-GEMINI.md
-PLAN.md
 plans/
 .superpowers/
 *superpowers
 .serena/
+.claude/
 
 # debug stuff
 samples/
