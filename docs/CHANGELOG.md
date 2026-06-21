@@ -1,5 +1,13 @@
 # Change Log
 
+## 0.28.0
+
+- **Dodge & Burn (new)** — local lighten/darken with freehand **polygon masks**, darkroom-style. Click to drop vertices, double-click (or snap-to-start) to close, and click inside a mask to reselect it; each mask carries its own EV strength and feather radius. Masks are stored in raw-image space and re-projected through the geometry transform, so they survive rotation, flip and crop. The stage runs on the **GPU with bit-for-bit CPU parity**, with a **Show Masks** toggle in the new Local sidebar section. (#274, #275) @reederphill
+- **Session restore** — NegPy now remembers the files you had open and offers to reopen them on the next launch. Moved or deleted files drop out automatically and your per-file edits come back. (#276)
+- **Rule-of-thirds grid while straightening** — a 3×3 alignment grid appears on the canvas while you drag the Fine Rotation slider, giving horizontal/vertical references to level horizons and buildings; it fades shortly after you release. (#258, #271)
+- **Cross-platform monitor profile detection** — the preview's display-profile auto-detection now works beyond Windows: **colord** on Linux (Wayland + X11), **ColorSync** on macOS, and PIL on Windows. macOS falls back to **Display P3** (not sRGB) when the OS reports no profile, matching modern Mac panels. When no profile can be detected (e.g. wlroots compositors like Hyprland/Sway, which don't register a display with colord), the **Display** selector in Export turns red, prompting you to pick your monitor's colour space manually. (#277)
+- Fix: **all export presets are visible again** — the Presets list no longer clips its last entry on short screens; the nested scroll area that collapsed and swallowed wheel scrolling has been removed. (#270, #273)
+
 ## 0.27.1
 
 - Fix: the default export colour space is now sRGB instead of Adobe RGB, so exports get a real ICC transform rather than just a wide-gamut tag that many viewers misread as sRGB. **Soft proof** now defaults on so the preview reflects the export colour-space clamp instead of silently diverging from it, and the toggle is surfaced more clearly. Monitor ICC detection failures now log a warning instead of a silent debug message. @reederphil
