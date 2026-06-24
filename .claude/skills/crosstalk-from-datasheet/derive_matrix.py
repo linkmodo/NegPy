@@ -98,9 +98,7 @@ def _round(m: Matrix) -> Matrix:
 
 def to_toml(name: str | None, m: Matrix) -> str:
     """Render the gallery TOML (name optional, 3x3 matrix block)."""
-    rows = ",\n".join(
-        "  [" + ", ".join(f"{v:8.4f}" for v in row).strip() + "]" for row in m
-    )
+    rows = ",\n".join("  [" + ", ".join(f"{v:8.4f}" for v in row).strip() + "]" for row in m)
     head = f'name = "{name}"\n' if name else ""
     return f"{head}matrix = [\n{rows},\n]\n"
 

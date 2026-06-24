@@ -378,9 +378,8 @@ class ImageProcessor:
     def _encode_dng_bytes(rgb_u16: np.ndarray) -> bytes:
         """Write a 16-bit RGB buffer as a LinearRaw DNG and return its bytes.
 
-        ``pidng`` lives in the optional ``scanner`` dependency group, so it is
-        imported lazily; a missing dependency raises a clear error that the export
-        worker surfaces to the user.
+        ``pidng`` is a core dependency but imported lazily; an import failure raises
+        a clear error that the export worker surfaces to the user.
         """
         import shutil
         import tempfile
@@ -394,8 +393,8 @@ class ImageProcessor:
             written = write_dng_linear(result, os.path.join(tmpdir, "flat_master"))
             with open(written, "rb") as fh:
                 return fh.read()
-        except ModuleNotFoundError as exc:  # pragma: no cover - exercised only without pidng
-            raise RuntimeError("DNG export requires the optional 'pidng' package (scanner extra) to be installed.") from exc
+        except ModuleNotFoundError as exc:  # pragma: no cover - pidng is a core dep
+            raise RuntimeError("DNG export failed to load the 'pidng' package.") from exc
         finally:
             shutil.rmtree(tmpdir, ignore_errors=True)
 

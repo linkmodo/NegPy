@@ -201,8 +201,7 @@ class ExportSidebar(BaseSidebar):
         idx = self.flat_format_combo.findData(self.state.flat_format)
         self.flat_format_combo.setCurrentIndex(idx if idx >= 0 else 0)
         self.flat_format_combo.setToolTip(
-            "16-bit TIFF: widely compatible, ProPhoto RGB, ready to edit.\n"
-            "Linear DNG: a linear digital negative (requires the optional 'pidng' package)."
+            "16-bit TIFF: widely compatible, ProPhoto RGB, ready to edit.\nLinear DNG: a linear digital negative."
         )
         fmt_row.addWidget(self.flat_format_combo)
         self.layout.addWidget(self.flat_format_row_widget)
