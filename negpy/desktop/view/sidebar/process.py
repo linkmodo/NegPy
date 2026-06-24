@@ -17,7 +17,7 @@ from negpy.features.process.models import ProcessMode, invalidate_local_bounds
 
 # D-Range Clip slider mapping: positions 0..100 clip the histogram tails; negative
 # positions -100..0 map to an outward log-density margin (gentler-than-zero stretch).
-_DRANGE_MARGIN_MIN = 0.005
+_DRANGE_MARGIN_MIN = 0.001
 _DRANGE_MARGIN_MAX = 1.0
 
 
