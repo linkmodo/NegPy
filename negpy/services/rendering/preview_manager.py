@@ -14,6 +14,7 @@ from negpy.infrastructure.loaders.helpers import NonStandardFileWrapper, get_bes
 from negpy.kernel.image.logic import apply_exif_orientation, ensure_rgb, uint16_to_float32
 from negpy.kernel.image.validation import ensure_image
 from negpy.kernel.system.config import APP_CONFIG
+from negpy.features.rgbscan.logic import assemble_rgb
 from negpy.kernel.system.logging import get_logger
 from negpy.services.rendering.preview_cache import PreviewBufferCache, PreviewCacheKey
 
@@ -277,6 +278,35 @@ class PreviewManager:
             time.perf_counter() - t_all,
         )
         return out, dims, meta
+
+    def load_linear_preview_rgb(
+        self,
+        red_path: str,
+        green_path: str,
+        blue_path: str,
+        color_space: str | None = None,
+        use_camera_wb: bool = False,
+        full_resolution: bool = False,
+        file_hash: str | None = None,
+        align: bool = True,
+    ) -> Tuple[ImageBuffer, Dimensions, dict]:
+        """Merge a narrowband R/G/B triplet into one linear preview: red channel from the
+        red shot, green from green, blue from blue. Each exposure is decoded (and cached)
+        through the normal preview path, then channels are combined."""
+        red_out, dims, meta = self.load_linear_preview(red_path, color_space, use_camera_wb, full_resolution, file_hash)
+        green_out, _, _ = self.load_linear_preview(green_path, color_space, use_camera_wb, full_resolution, None)
+        blue_out, _, _ = self.load_linear_preview(blue_path, color_space, use_camera_wb, full_resolution, None)
+
+        red = np.asarray(red_out, dtype=np.float32)
+
+        def _match(buf: ImageBuffer) -> np.ndarray:
+            arr = np.asarray(buf, dtype=np.float32)
+            if arr.shape[:2] != red.shape[:2]:
+                arr = cv2.resize(arr, (red.shape[1], red.shape[0]), interpolation=cv2.INTER_AREA)
+            return arr
+
+        merged = assemble_rgb(red, _match(green_out), _match(blue_out), align=align)
+        return ensure_image(merged), dims, meta
 
     def load_splash_and_linear(
         self,
