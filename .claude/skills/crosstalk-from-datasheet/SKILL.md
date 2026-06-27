@@ -1,6 +1,6 @@
 ---
 name: crosstalk-from-datasheet
-description: Use when the user supplies a film-stock spec sheet, datasheet, or spectral data (PDF / URL / numbers) and wants a NegPy spectral-crosstalk .toml matrix for the Lab Separation control, or asks to calibrate / derive channel-unmixing for a specific film or scanner. Keywords: crosstalk, datasheet, spec sheet, film stock, dye density, spectral, separation, unmixing, toml.
+description: "Use when the user supplies a film-stock spec sheet, datasheet, or spectral data (PDF / URL / numbers) and wants a NegPy spectral-crosstalk .toml matrix for the Lab Separation control, or asks to calibrate / derive channel-unmixing for a specific film or scanner. Keywords: crosstalk, datasheet, spec sheet, film stock, dye density, spectral, separation, unmixing, toml."
 ---
 
 # Crosstalk from datasheet
