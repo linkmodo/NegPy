@@ -51,9 +51,9 @@ Here is what actually happens to your image. We apply these steps in order, pass
     *   **Toe** — shadows. Lifts the paper-black ceiling: $D_{max,eff} = D_{max} - \text{toe} \cdot 0.35$ (`toe_height`). Negative toe instead *sharpens* the shadow knee (extending past $D_{max}$ has near-zero perceptual effect).
     *   **Shoulder** — highlights. Lifts the paper-white floor (compresses/greys highlights): $D_{min,eff} = D_{min} + \text{shoulder} \cdot 0.35$ (`shoulder_height`).
     *   **Grade-coupled baseline**: hard grades (high slope) physically have snappier toes and compressed shoulders, so a slope-proportional amount is added automatically (`toe_grade_strength` $= 0.15$, `shoulder_grade_strength` $= 0.12$, scaled by the normalized slope).
-*   **Output**: Converts print density back to light (Transmittance), then encodes:
+*   **Output**: Converts print density back to **scene-linear** reflectance (transmittance):
     $$I_{out} = 10^{-D}$$
-    *   **Note**: The sRGB transfer (display gamma) is applied as the final encode.
+    *   **Note**: The pipeline is **scene-linear internally** — the exposure stage emits linear light and every creative stage (Retouch, Lab, Local, Toning, Finish) operates on it. The working-space OETF (the **ProPhoto RGB ROMM TRC**, gamma $1.8$ with a linear toe below $1/512$) is applied **only as the final engine step** (the output transform), so it composes correctly with the ProPhoto ICC profile at the display/export boundary. Retouch's dust *detection* is perceptual, so on the CPU it computes its luma on a display-encoded copy while healing in linear; the GPU keeps a single encoded perceptual region (exposure → clahe/retouch encoded → lab decodes back to linear).
 
 ### Automatic helpers
 
@@ -87,7 +87,7 @@ Profiles are **mode-aware**: C-41 exposes the RA4 colour papers, B&W exposes the
 
 When the render intent is **Flat** (`RenderIntent.FLAT`), the Print stage is replaced by a **true log encoding** for use as a digital intermediate — flat, milky, low-contrast, like S-Log/LogC video before a LUT. It does **not** run the H&D curve at all.
 
-The key point: the normalized signal $\text{val} \in [0,1]$ from §2 is *already* a log measurement of the scene. The print path's $I_{out} = 10^{-D}$ is therefore a log→linear **decode** — it (with the sRGB encode) is exactly what turns the signal back into a normal-contrast positive. The flat master **skips both**, emitting the log signal **directly** as the output value (positive-oriented, $1 - \text{val}$):
+The key point: the normalized signal $\text{val} \in [0,1]$ from §2 is *already* a log measurement of the scene. The print path's $I_{out} = 10^{-D}$ is therefore a log→linear **decode** — it (with the working-space OETF) is exactly what turns the signal back into a normal-contrast positive. The flat master **skips both**, emitting the log signal **directly** as the output value (positive-oriented, $1 - \text{val}$):
 
 $$I_{out} = \text{clip}\big(\text{lift} + \text{gain} \cdot (1 - \text{val}),\ 0,\ 1\big)$$
 

@@ -5,6 +5,7 @@ from negpy.domain.models import WorkspaceConfig
 from negpy.kernel.caching.manager import PipelineCache
 from negpy.kernel.caching.logic import calculate_config_hash, CacheEntry
 from negpy.kernel.image.validation import ensure_image
+from negpy.kernel.image.logic import working_oetf_encode
 from negpy.kernel.system.logging import get_logger
 from negpy.features.geometry.processor import GeometryProcessor, CropProcessor
 from negpy.features.exposure.models import RenderIntent
@@ -180,6 +181,8 @@ class DarkroomEngine:
 
         if not flat_intent:
             current_img = FinishProcessor(settings.finish).process(current_img, context)
+            # Output transform: scene-linear -> display-encoded (flat master skips this).
+            current_img = ensure_image(working_oetf_encode(current_img))
 
         try:
             uv_grid = CoordinateMapping.create_uv_grid(

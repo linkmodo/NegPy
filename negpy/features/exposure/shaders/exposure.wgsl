@@ -43,12 +43,11 @@ fn softplus(x: f32) -> f32 {
     return max(x, 0.0) + log(1.0 + exp(-abs(x)));
 }
 
-// sRGB OETF (linear -> display encoding); matches the Lab stage's sRGB decode.
-fn srgb_oetf(t: f32) -> f32 {
-    if (t <= 0.0031308) {
-        return 12.92 * t;
-    }
-    return 1.055 * pow(t, 1.0 / 2.4) - 0.055;
+// Working-space OETF (ProPhoto ROMM: gamma 1.8 + linear toe); feeds the encoded
+// perceptual region (clahe, retouch) before lab decodes back to linear.
+fn oetf_encode(t: f32) -> f32 {
+    let x = clamp(t, 0.0, 1.0);
+    return select(pow(x, 0.55555556), x * 16.0, x < 0.001953125);
 }
 
 @compute @workgroup_size(8, 8)
@@ -114,7 +113,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
             transmittance = (transmittance + params.flare * flare_white) / (1.0 + params.flare);
         }
 
-        res[ch] = srgb_oetf(max(transmittance, 0.0));
+        res[ch] = oetf_encode(transmittance);
     }
 
     textureStore(output_tex, coords, vec4<f32>(clamp(res, vec3<f32>(0.0), vec3<f32>(1.0)), 1.0));

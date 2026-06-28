@@ -102,31 +102,36 @@ const FIBONACCI_64 = array<vec2<f32>, 64>(
 // accumulator the same way a Gaussian convolution kernel is normalized (sum=1).
 const BLOOM_GAUSS_SUM = 27.668145;
 
-fn to_perceptual(c: vec3<f32>) -> vec3<f32> {
-    return pow(max(c, vec3<f32>(0.0)), vec3<f32>(1.0 / 2.2));
+// Working-space TRC (ProPhoto ROMM: gamma 1.8 + linear toe). Lab is the encoded->linear
+// transition: input samples are decoded; the highlight/sharpen perceptual domain uses the same TRC.
+fn oetf_encode(c: vec3<f32>) -> vec3<f32> {
+    let x = clamp(c, vec3<f32>(0.0), vec3<f32>(1.0));
+    return select(pow(x, vec3<f32>(0.55555556)), x * 16.0, x < vec3<f32>(0.001953125));
 }
 
-fn to_linear(c: vec3<f32>) -> vec3<f32> {
-    return pow(max(c, vec3<f32>(0.0)), vec3<f32>(2.2));
+fn oetf_decode(c: vec3<f32>) -> vec3<f32> {
+    let e = max(c, vec3<f32>(0.0));
+    return select(pow(e, vec3<f32>(1.8)), e / 16.0, e < vec3<f32>(0.03125));
+}
+
+fn load_lin(coords: vec2<i32>) -> vec3<f32> {
+    return oetf_decode(textureLoad(input_tex, coords, 0).rgb);
 }
 
 fn rgb_to_lab(rgb: vec3<f32>) -> vec3<f32> {
-    var r = rgb.r;
-    var g = rgb.g;
-    var b = rgb.b;
+    // Linear Adobe RGB -> CIELAB (D65). Input is scene-linear (no sRGB decode).
+    let r = max(rgb.r, 0.0);
+    let g = max(rgb.g, 0.0);
+    let b = max(rgb.b, 0.0);
 
-    if (r > 0.04045) { r = pow((r + 0.055) / 1.055, 2.4); } else { r = r / 12.92; }
-    if (g > 0.04045) { g = pow((g + 0.055) / 1.055, 2.4); } else { g = g / 12.92; }
-    if (b > 0.04045) { b = pow((b + 0.055) / 1.055, 2.4); } else { b = b / 12.92; }
+    // ProPhoto RGB (ROMM) -> XYZ, D50 (working-space primaries; matches CPU rgb_to_lab_working).
+    var x = r * 0.7976749 + g * 0.1351917 + b * 0.0313534;
+    var y = r * 0.2880402 + g * 0.7118741 + b * 0.0000857;
+    var z = r * 0.0000000 + g * 0.0000000 + b * 0.8252100;
 
-    // Adobe RGB (1998) -> XYZ, D65 (working-space primaries; matches CPU rgb_to_lab_working).
-    var x = r * 0.5767309 + g * 0.1855540 + b * 0.1881852;
-    var y = r * 0.2973769 + g * 0.6273491 + b * 0.0752741;
-    var z = r * 0.0270343 + g * 0.0706872 + b * 0.9911085;
-
-    x = x / 0.95047;
+    x = x / 0.96422;
     y = y / 1.00000;
-    z = z / 1.08883;
+    z = z / 0.82521;
 
     if (x > 0.008856) { x = pow(x, 1.0/3.0); } else { x = (7.787 * x) + (16.0 / 116.0); }
     if (y > 0.008856) { y = pow(y, 1.0/3.0); } else { y = (7.787 * y) + (16.0 / 116.0); }
@@ -148,20 +153,16 @@ fn lab_to_rgb(lab: vec3<f32>) -> vec3<f32> {
     if (pow(y, 3.0) > 0.008856) { y = pow(y, 3.0); } else { y = (y - 16.0 / 116.0) / 7.787; }
     if (pow(z, 3.0) > 0.008856) { z = pow(z, 3.0); } else { z = (z - 16.0 / 116.0) / 7.787; }
 
-    x = x * 0.95047;
+    x = x * 0.96422;
     y = y * 1.00000;
-    z = z * 1.08883;
+    z = z * 0.82521;
 
-    // XYZ -> Adobe RGB (1998), D65 (matches CPU lab_to_rgb_working).
-    var r = x * 2.0413690 + y * -0.5649464 + z * -0.3446944;
-    var g = x * -0.9692660 + y * 1.8760108 + z * 0.0415560;
-    var b = x * 0.0134474 + y * -0.1183897 + z * 1.0154096;
+    // XYZ -> ProPhoto RGB (ROMM), D50. Returns scene-linear (no encode).
+    let r = x * 1.3459433 + y * -0.2556075 + z * -0.0511118;
+    let g = x * -0.5445989 + y * 1.5081673 + z * 0.0205351;
+    let b = x * 0.0000000 + y * 0.0000000 + z * 1.2118128;
 
-    if (r > 0.0031308) { r = 1.055 * pow(r, 1.0/2.4) - 0.055; } else { r = 12.92 * r; }
-    if (g > 0.0031308) { g = 1.055 * pow(g, 1.0/2.4) - 0.055; } else { g = 12.92 * g; }
-    if (b > 0.0031308) { b = 1.055 * pow(b, 1.0/2.4) - 0.055; } else { b = 12.92 * b; }
-
-    return vec3<f32>(r, g, b);
+    return max(vec3<f32>(r, g, b), vec3<f32>(0.0));
 }
 
 fn rgb_to_hsv(c: vec3<f32>) -> vec3<f32> {
@@ -203,7 +204,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
     if (gid.x >= dims.x || gid.y >= dims.y) { return; }
 
     let coords = vec2<i32>(i32(gid.x), i32(gid.y));
-    var color = textureLoad(input_tex, coords, 0).rgb;
+    var color = load_lin(coords);
 
     // 1. Chroma Denoise
     if (params.chroma_denoise > 0.0) {
@@ -212,8 +213,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
         for (var j = -2; j <= 2; j++) {
             for (var i = -2; i <= 2; i++) {
                 let sample_coords = clamp(coords + vec2<i32>(i, j), vec2<i32>(0), vec2<i32>(dims) - 1);
-                let sample_rgb = textureLoad(input_tex, sample_coords, 0).rgb;
-                let sample_lab = rgb_to_lab(sample_rgb);
+                let sample_lab = rgb_to_lab(load_lin(sample_coords));
                 let weight = gauss_kernel[(j + 2) * 5 + (i + 2)];
                 blur_ab += sample_lab.yz * weight;
             }
@@ -257,9 +257,9 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
         for (var j = -2; j <= 2; j++) {
             for (var i = -2; i <= 2; i++) {
                 let sample_coords = clamp(coords + vec2<i32>(i, j), vec2<i32>(0), vec2<i32>(dims) - 1);
-                let sample_color = textureLoad(input_tex, sample_coords, 0).rgb;
+                let sample_color = load_lin(sample_coords);
                 let weight = gauss_kernel[(j + 2) * 5 + (i + 2)];
-                blur_luma += dot(to_perceptual(sample_color), LUMA_COEFFS) * weight;
+                blur_luma += dot(oetf_encode(sample_color), LUMA_COEFFS) * weight;
             }
         }
         // Derive the USM ratio from input_tex (matching the blur source). Using
@@ -268,12 +268,12 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
         // luma — most visibly on saturated reds, where CIELAB sat preserves L*
         // but cuts G/B and drops the perceptual luma far enough below
         // neighbouring blur to drive the ratio negative and crush the pixel.
-        let input_color = textureLoad(input_tex, coords, 0).rgb;
-        let input_luma = dot(to_perceptual(input_color), LUMA_COEFFS);
+        let input_color = load_lin(coords);
+        let input_luma = dot(oetf_encode(input_color), LUMA_COEFFS);
         let amount = params.sharpen * 2.5;
         let sharpened_luma = clamp(input_luma + (input_luma - blur_luma) * amount, 0.0, 1.0);
         let ratio = sharpened_luma / max(input_luma, 1e-6);
-        color = to_linear(to_perceptual(color) * ratio);
+        color = oetf_decode(oetf_encode(color) * ratio);
     }
 
     // 6. Glow and Halation
@@ -296,8 +296,9 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
             if (params.glow_amount > 0.0) {
                 let g_off = offset * GLOW_RADIUS;
                 let g_coord = clamp(coords + vec2<i32>(g_off), vec2<i32>(0), vec2<i32>(dims) - 1);
-                let g_samp = textureLoad(input_tex, g_coord, 0).rgb;
-                let g_luma = dot(g_samp, LUMA_COEFFS);
+                let g_samp = load_lin(g_coord);
+                // Highlight mask in display domain (keeps 0.5 threshold); bloom is linear.
+                let g_luma = dot(oetf_encode(g_samp), LUMA_COEFFS);
                 let g_hl = max(0.0, (g_luma - HIGHLIGHT_THRESHOLD) / (1.0 - HIGHLIGHT_THRESHOLD));
                 let g_r = length(offset);  // normalised radius in [0,1]
                 let g_w = exp(-g_r * g_r * 2.0);
@@ -307,8 +308,8 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
             if (params.halation_strength > 0.0) {
                 let h_off = offset * HAL_RADIUS;
                 let h_coord = clamp(coords + vec2<i32>(h_off), vec2<i32>(0), vec2<i32>(dims) - 1);
-                let h_samp = textureLoad(input_tex, h_coord, 0).rgb;
-                let h_luma = dot(h_samp, LUMA_COEFFS);
+                let h_samp = load_lin(h_coord);
+                let h_luma = dot(oetf_encode(h_samp), LUMA_COEFFS);
                 let h_hl = max(0.0, (h_luma - HIGHLIGHT_THRESHOLD) / (1.0 - HIGHLIGHT_THRESHOLD));
                 let h_r = length(offset);
                 let h_w = exp(-h_r * h_r * 2.0);
