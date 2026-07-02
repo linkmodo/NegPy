@@ -3,7 +3,7 @@
 ## 0.31.2
 
 - Fix: in the **Apply** dialog, ticking **Tonal span** or **Colour balance** no longer clears the other — each now toggles only its own axis (Use Luma Average / Use Colour Average) on the target frames and leaves the other as it was. (#375)
-- Fix: the **filmstrip thumbnail** now tracks the current edit — resetting settings or adjusting sliders updates the grid preview in place, instead of leaving it stale until you switch, save or export. (#376) @seanharding
+- Fix: the **filmstrip thumbnail** now tracks the current edit — resetting settings or adjusting sliders updates the grid preview in place, instead of leaving it stale until you switch, save or export. (#376)
 
 ## 0.31.1
 
