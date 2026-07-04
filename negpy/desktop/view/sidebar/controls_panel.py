@@ -328,7 +328,7 @@ class ControlsPanel(QWidget):
         )
         exp.grade_slider.setToolTip(
             tooltip_with_shortcut(
-                "Contrast grade, like paper grades in the darkroom. 0 = very soft (flat), 5 = very hard (contrasty)",
+                "Contrast (ISO R paper exposure range): R180 = very soft, R50 = very hard; R110 ≈ grade 2 paper",
                 ["grade_up", "grade_down"],
             )
         )
