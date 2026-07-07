@@ -1,6 +1,20 @@
 # Change Log
 
 
+## 0.35.0
+
+- New: **Gear Library** — a searchable library of cameras, lenses and film stocks; picking gear for a frame writes scan-rig and film metadata into the exported XMP. There are some bundled items but library is easily user-extendable. @jboneng
+- New: **Freehand analysis region** — draw the exposure-metering area directly on the canvas instead of relying on the centered Analysis Buffer inset; a draw/clear pair sits on the Process page. @linkmodo
+- New: **Scratch Tool** — heal hairs and scratches by clicking a polyline along the defect (double-click or Enter to commit), instead of forcing them through the round brush.
+- New: Enter now also commits an in-progress Dodge & Burn stroke, same as double-click.
+- Change: **Manual healing now clones real texture** — heals copy a matching patch from elsewhere in the frame and blend the seam, keeping grain intact instead of a smoothed synthetic fill; existing heal spots convert automatically.
+- Change: **Bundled gear and crosstalk profiles now load live from the app** instead of being copied into your docs folder. Docs folder is reserved for your personal profiles & gear  
+- Change: **Selecting a thumbnail now opens it** — a single click loads the frame into the viewer (Ctrl/Shift-click still builds a multi-selection for batch actions); double-clicking inside an open crop box now confirms and closes the tool. @linkmodo
+- Change: **Cyan** now has an assignable keyboard shortcut alongside the other white-balance sliders, unbound by default (you should not be touching cyan!) — set it in the shortcut editor.
+- Fix: **crop no longer inflates under Fine Rotation** — the manual crop rectangle is now measured in the same already-rotated view you draw it on, instead of being mapped through the tilt and re-bounded, which grew the cropped area as the tilt increased. @linkmodo
+- Fix: **locked/disabled controls now are greyed-out** — sliders, buttons and fields under an active lock (e.g. Analysis Buffer under Roll Average, Flat-Field k1 with no reference profile) now show a grey disabled state instead of looking identical to normal ones.
+- Fix: **Next/Prev buttons now follow the sorted/filtered order** shown in the filmstrip instead of raw load order — fixes them greying out mid-roll or staying stuck (but unresponsive) at the end of a roll not loaded alphabetically.
+
 ## 0.34.0
 
 - Change: **Dodge & Burn moved into the print exposure** — masks now adjust exposure before the paper curve instead of scaling the finished image, which is how dodging and burning physically work. Strong burns and dodges roll off through the paper's toe and shoulder instead of clipping flat. The section moved to the Exposure tab; existing dodge/burn edits will render slightly differently.
