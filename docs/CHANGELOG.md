@@ -18,6 +18,9 @@
 - Fix: **locked/disabled controls now are greyed-out** — sliders, buttons and fields under an active lock (e.g. Analysis Buffer under Roll Average, Flat-Field k1 with no reference profile) now show a grey disabled state instead of looking identical to normal ones.
 - Fix: **Next/Prev buttons now follow the sorted/filtered order** shown in the filmstrip instead of raw load order — fixes them greying out mid-roll or staying stuck (but unresponsive) at the end of a roll not loaded alphabetically.
 - Fix: **large (tiled) exports no longer drift from the preview** when Separation is on or a freehand analysis region is drawn — the tiled export path was metering exposure off the raw image instead of the same unmixed, region-restricted one the preview uses.
+- New: **Protect original metadata** toggle in the Metadata tab — exports keep the source file's EXIF/XMP untouched instead of NegPy rewriting it. @jboneng
+- Perf: **CPU rendering is now multithreaded**, ~3.5x faster on a full-res render. @linkmodo
+- Fix: HQ preview toggle no longer shows a stale render; zoom % now reflects true pixel zoom (with Fit/1:1 buttons); tooltip shortcut chips and the Crosstalk tooltip no longer overflow; Batch Analysis warning now leads with the crop count. @linkmodo
 
 ## 0.34.0
 
