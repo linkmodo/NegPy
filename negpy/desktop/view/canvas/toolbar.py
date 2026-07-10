@@ -411,13 +411,18 @@ class ActionToolbar(QWidget):
     def flip(self, axis: str) -> None:
         from dataclasses import replace
 
-        geo = self.session.state.config.geometry
-        if axis == "horizontal":
-            new_geo = replace(geo, flip_horizontal=not geo.flip_horizontal)
-        else:
-            new_geo = replace(geo, flip_vertical=not geo.flip_vertical)
+        from negpy.features.geometry.logic import mirror_normalized_rect, toggle_flip
 
-        new_config = replace(self.session.state.config, geometry=new_geo)
+        horizontal = axis == "horizontal"
+        config = self.session.state.config
+        # toggle_flip negates fine rotation and mirrors the crop rect so the
+        # result is a true mirror of the current render (see its docstring).
+        new_config = replace(config, geometry=toggle_flip(config.geometry, horizontal))
+        # The freehand analysis region is transformed-space like the crop rect;
+        # mirroring it keeps the meters reading the same picture content.
+        if config.process.analysis_rect is not None:
+            new_rect = mirror_normalized_rect(config.process.analysis_rect, horizontal)
+            new_config = replace(new_config, process=replace(config.process, analysis_rect=new_rect))
         self.session.update_config(new_config, persist=True)
         self.controller.request_render()
 

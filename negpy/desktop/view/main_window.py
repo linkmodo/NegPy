@@ -319,6 +319,7 @@ class MainWindow(QMainWindow):
 
         self.canvas.clicked.connect(self.controller.handle_canvas_clicked)
         self.canvas.crop_rect_changed.connect(self.controller.handle_crop_rect_changed)
+        self.canvas.crop_rotation_changed.connect(self.controller.handle_crop_rotation_changed)
         self.canvas.crop_confirmed.connect(self.controller.confirm_manual_crop)
         self.canvas.analysis_rect_changed.connect(self.controller.handle_analysis_rect_changed)
         self.canvas.analysis_confirmed.connect(self.controller.confirm_analysis_region)

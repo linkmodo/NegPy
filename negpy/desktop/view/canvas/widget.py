@@ -76,6 +76,7 @@ class ImageCanvas(QWidget):
 
     clicked = pyqtSignal(float, float)
     crop_rect_changed = pyqtSignal(float, float, float, float, bool)
+    crop_rotation_changed = pyqtSignal(float, bool)
     crop_confirmed = pyqtSignal()
     analysis_rect_changed = pyqtSignal(float, float, float, float, bool)
     analysis_confirmed = pyqtSignal()
@@ -126,6 +127,7 @@ class ImageCanvas(QWidget):
 
         self.overlay.clicked.connect(self.clicked.emit)
         self.overlay.crop_rect_changed.connect(self.crop_rect_changed.emit)
+        self.overlay.crop_rotation_changed.connect(self.crop_rotation_changed.emit)
         self.overlay.crop_confirmed.connect(self.crop_confirmed.emit)
         self.overlay.analysis_rect_changed.connect(self.analysis_rect_changed.emit)
         self.overlay.analysis_confirmed.connect(self.analysis_confirmed.emit)
