@@ -152,8 +152,8 @@ class GeometrySidebar(BaseSidebar):
             "Fine-tunes rotation to correct tilt (degrees): positive turns clockwise, negative counter-clockwise. "
             "For quick rotation, drag the round handles outside the crop box in the Crop tool."
         )
-        align_row.addWidget(self.straighten_btn, 0)
         align_row.addWidget(self.fine_rot_slider, 1)
+        align_row.addWidget(self.straighten_btn, 0)
         self.layout.addLayout(align_row)
 
     def cycle_guide(self) -> None:
