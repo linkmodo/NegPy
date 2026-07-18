@@ -297,7 +297,7 @@ def build(window: "MainWindow") -> list[TutorialStep]:
                 "Auto Density and Auto Grade aim at a fixed idea of a good print. Your scanner, "
                 "your film and your taste may disagree — <b>Set Targets</b> moves the aim.<br><br>"
                 "<b>Print Density Target</b> is how bright the metered midtone prints; "
-                "<b>Contrast Target</b> is how punchy the roll comes out. The two strength "
+                "<b>Contrast Target</b> is the printed contrast every frame is aimed at. The two strength "
                 "sliders decide how far each meter is trusted: at 0 you get a fixed setting for "
                 "every frame, at 1 every frame is forced to the same key or the same contrast. "
                 "<b>Metering Band</b> caps how far Auto Density may swing between frames.<br><br>"

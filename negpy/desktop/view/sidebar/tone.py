@@ -79,8 +79,8 @@ class ToneSidebar(BaseSidebar):
             "fa5s.balance-scale",
             "Auto Grade",
             conf.auto_normalize_contrast,
-            "Auto Grade: normalize contrast across the roll — render every negative through the same "
-            "curve so dense negatives stop printing over-contrasty and flat ones stop printing muddy",
+            "Auto Grade: aim each frame at a contrast target instead of printing the negative's own "
+            "density range, so dense negatives stop printing over-contrasty and flat ones stop printing muddy",
         )
         self.targets_btn = self._icon_action(
             "fa5s.sliders-h",

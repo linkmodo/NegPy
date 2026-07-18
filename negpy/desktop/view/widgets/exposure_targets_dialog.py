@@ -36,7 +36,7 @@ _GROUPS = (
     ),
     (
         "AUTO GRADE",
-        "Auto Grade normalizes contrast across a roll so dense negatives stop printing over-contrasty and flat ones stop printing muddy.",
+        "Auto Grade pulls each frame's contrast toward a target instead of printing the negative's own density range, so dense negatives stop printing over-contrasty and flat ones stop printing muddy.",
         (
             (
                 "auto_grade_target",
