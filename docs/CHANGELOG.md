@@ -34,6 +34,7 @@
 - Fix: **Canvas toolbar stays visible on narrow windows** — it now collapses controls into the overflow menu adaptively instead of getting cut off when the viewport is small. @jboneng
 - Fix: **Pin then reset restores the original layout** — resetting the panel layout returns panels to their original docked position and size. @jboneng
 - Fix: **The H&D chart shows where zero is** — the analysis curve's grid stopped short of the axes, so a curve flat at black looked like it hovered above the bottom of the plot instead of sitting on it. The 0 and 1 grid lines are now drawn.
+- Fix: **Hidden dodge & burn masks stay hidden** — a mask you hid came back visible as soon as you switched to another frame, and the hide state was lost on restart; it now sticks per frame and across sessions. @paulglover
 - Fix: **Cast Removal strength sticks across frames** — the slider now carries to fresh files like True Black and Auto Density, since it's a workflow preference rather than a per-image look.
 
 ## 0.37.2

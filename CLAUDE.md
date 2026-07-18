@@ -2,7 +2,7 @@
 
 Guidance for Claude Code in this repository.
 
-> **Keep this file current.** When a change alters something documented here — stage order, the feature pattern, commands, an invariant — update it in the same change.
+> **Keep this file current.** When a change alters something documented here — stage order, the feature pattern, commands — update it in the same change.
 
 ## Commands
 
@@ -67,14 +67,3 @@ Every feature lives in `negpy/features/<name>/`:
 ## Invariants & gotchas
 
 - **CPU/GPU parity**: any change to a stage's math must land in both `logic.py` and its `.wgsl` shader. Constants mirrored as WGSL literals (histogram bins, zone density, metrics offsets) have parity tests — keep them in sync.
-- **Cast Removal neutral-axis** is measured against the **pre-trim** resolved bounds on both paths (`exposure/processor.py` `pre_trim_bounds`, `gpu_engine.py` measures before `adj_floors`) — the film's inherent cast is a source property, so per-channel WP/BP trims must not perturb which pixels are picked as neutral. Consumption then normalizes the refs against the *adjusted* bounds. Using adjusted bounds for the measurement diverges CPU↔GPU only when trims are non-zero; `test_gpu_curve_parity.py::test_cpu_gpu_match_trims_no_dye_mute` guards it (Dye Mute, `LabConfig.chroma_damping`, otherwise masks it by scaling chroma toward neutral).
-- **Print H&D curve** has four lock-step mirrors: the numba kernel (`exposure/logic.py`), the `CharacteristicCurve` chart, `exposure.wgsl`, and the uniform pack in `gpu_engine.py`. Change all together; growing a GPU uniform struct is a `_uniform_sizes` bump + pack/WGSL row.
-- **Numba kernels**: decorate with `parallel_njit` (`kernel/system/parallel.py`), never raw `@njit(parallel=True)`. Per-row scratch arrays go inside the `prange` loop (thread-local); never pass `cache=True` (see `test_parallel_dispatch.py` for why).
-- **Working TRC** is hardcoded in **seven** places: CPU `working_oetf_*` (`kernel/image/logic.py`, the definition) and WGSL `oetf_*` in `exposure.wgsl`, `output_encode.wgsl`, `lab.wgsl`, `clahe_apply.wgsl`, `clahe_hist.wgsl`, `metrics.wgsl`. (`charts.py` calls `working_oetf_encode` and follows automatically — keep it that way.) **Primaries/white-point** changes touch **five**: the CPU XYZ matrices plus the inline matrices in `lab.wgsl`, `clahe_apply.wgsl`, `toning.wgsl`, and the Y-row-only copy in `clahe_hist.wgsl`. Every WGSL matrix is a hand-duplicated literal; `test_pipeline_parity.py` is what catches a missed copy.
-- **Coordinate spaces**: manual crop rect and analysis rect are normalized to the *transformed* (display) image; retouch strokes and dodge/burn placements are *source*-normalized and round-trip through `create_uv_grid`/`map_coords_to_geometry` — which must stay consistent with the image warp (incl. distortion k1).
-- **Metrics buffer** (`_METRICS_*` offsets, `gpu_engine.py`) is append-only; offsets are mirrored as WGSL array lengths.
-- **Camera capture** (`infrastructure/capture/gphoto.py`) has load-bearing libgphoto2 guards (a NULL-choice read SIGSEGVs the process; writes are async; the event queue must be drained after a still). Read that module before touching it.
-
-## More detail
-
-`docs/PIPELINE.md` (stage-by-stage behaviour), `docs/CAMERA_SCANNING.md`, `docs/CONTACT_SHEET_TEMPLATES.md`, `docs/CROSSTALK.md`. Deep design rationale for past decisions lives in git history (`git log -p CLAUDE.md`).
