@@ -123,7 +123,7 @@ class ActionToolbar(QWidget):
         self.zoom_label = QLabel("100%")
         self.zoom_label.setFixedSize(48, btn_height)
         self.zoom_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.zoom_label.setStyleSheet(f"color: {THEME.text_secondary}; font-size: {THEME.font_size_base}px; font-weight: 600;")
+        self.zoom_label.setStyleSheet(f"color: {THEME.text_secondary}; font-size: {THEME.font_size_header}px; font-weight: 600;")
 
         self.btn_zoom_fit = QToolButton()
         self.btn_zoom_fit.setIcon(qta.icon("fa5s.expand", color=icon_color))
